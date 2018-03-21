@@ -89,6 +89,17 @@ class ApiTest(unittest.TestCase):
         self.assertRaises(twitter.TwitterError, lambda: api.GetFollowers())
 
     @responses.activate
+    def testAppOnlyAuth(self):
+        responses.add(method=POST,
+                      url='https://api.twitter.com/oauth2/token',
+                      body='{"token_type":"bearer","access_token":"testing"}')
+        api = twitter.Api(
+            consumer_key='test',
+            consumer_secret='test',
+            application_only_auth=True)
+        self.assertEqual(api._bearer_token['access_token'], "testing")
+
+    @responses.activate
     def testGetHelpConfiguration(self):
         with open('testdata/get_help_configuration.json') as f:
             resp_data = f.read()
@@ -107,72 +118,6 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(resp, 23)
         resp = self.api.GetShortUrlLength(https=True)
         self.assertEqual(resp, 23)
-
-    @responses.activate
-    def testGetSearch(self):
-        with open('testdata/get_search.json') as f:
-            resp_data = f.read()
-        responses.add(GET, DEFAULT_URL, body=resp_data)
-
-        resp = self.api.GetSearch(term='python')
-        self.assertEqual(len(resp), 1)
-        self.assertTrue(type(resp[0]), twitter.Status)
-        self.assertEqual(resp[0].id, 674342688083283970)
-
-        self.assertRaises(
-            twitter.TwitterError,
-            lambda: self.api.GetSearch(since_id='test'))
-        self.assertRaises(
-            twitter.TwitterError,
-            lambda: self.api.GetSearch(max_id='test'))
-        self.assertRaises(
-            twitter.TwitterError,
-            lambda: self.api.GetSearch(term='test', count='test'))
-        self.assertFalse(self.api.GetSearch())
-
-    @responses.activate
-    def testGetSeachRawQuery(self):
-        with open('testdata/get_search_raw.json') as f:
-            resp_data = f.read()
-        responses.add(GET, DEFAULT_URL, body=resp_data)
-
-        resp = self.api.GetSearch(raw_query="q=twitter%20&result_type=recent&since=2014-07-19&count=100")
-        self.assertTrue([type(status) is twitter.Status for status in resp])
-        self.assertTrue(['twitter' in status.text for status in resp])
-
-    @responses.activate
-    def testGetSearchGeocode(self):
-        with open('testdata/get_search_geocode.json') as f:
-            resp_data = f.read()
-        responses.add(GET, DEFAULT_URL, body=resp_data)
-
-        resp = self.api.GetSearch(
-            term="python",
-            geocode=('37.781157', '-122.398720', '100mi'))
-        status = resp[0]
-        self.assertTrue(status, twitter.Status)
-        self.assertTrue(status.geo)
-        self.assertEqual(status.geo['type'], 'Point')
-        resp = self.api.GetSearch(
-            term="python",
-            geocode=('37.781157,-122.398720,100mi'))
-        status = resp[0]
-        self.assertTrue(status, twitter.Status)
-        self.assertTrue(status.geo)
-
-    @responses.activate
-    def testGetUsersSearch(self):
-        with open('testdata/get_users_search.json') as f:
-            resp_data = f.read()
-        responses.add(GET, DEFAULT_URL, body=resp_data)
-
-        resp = self.api.GetUsersSearch(term='python')
-        self.assertEqual(type(resp[0]), twitter.User)
-        self.assertEqual(len(resp), 20)
-        self.assertEqual(resp[0].id, 63873759)
-        self.assertRaises(twitter.TwitterError,
-                          lambda: self.api.GetUsersSearch(term='python',
-                                                          count='test'))
 
     @responses.activate
     def testGetTrendsCurrent(self):
@@ -274,7 +219,7 @@ class ApiTest(unittest.TestCase):
             resp_data = f.read()
         responses.add(
             responses.GET,
-            'https://api.twitter.com/1.1/blocks/list.json?cursor=-1&tweet_mode=compat',
+            'https://api.twitter.com/1.1/blocks/list.json?cursor=-1&stringify_ids=False&include_entities=False&skip_status=False&tweet_mode=compat',
             body=resp_data,
             match_querystring=True,
             status=200)
@@ -282,7 +227,7 @@ class ApiTest(unittest.TestCase):
             resp_data = f.read()
         responses.add(
             responses.GET,
-            'https://api.twitter.com/1.1/blocks/list.json?cursor=1524574483549312671&tweet_mode=compat',
+            'https://api.twitter.com/1.1/blocks/list.json?cursor=1524574483549312671&stringify_ids=False&include_entities=False&skip_status=False&tweet_mode=compat',
             body=resp_data,
             match_querystring=True,
             status=200)
@@ -333,7 +278,7 @@ class ApiTest(unittest.TestCase):
             resp_data = f.read()
         responses.add(
             responses.GET,
-            'https://api.twitter.com/1.1/blocks/ids.json?cursor=-1&tweet_mode=compat',
+            'https://api.twitter.com/1.1/blocks/ids.json?cursor=-1&stringify_ids=False&include_entities=True&skip_status=False&tweet_mode=compat',
             body=resp_data,
             match_querystring=True,
             status=200)
@@ -341,7 +286,7 @@ class ApiTest(unittest.TestCase):
             resp_data = f.read()
         responses.add(
             responses.GET,
-            'https://api.twitter.com/1.1/blocks/ids.json?cursor=1524566179872860311&tweet_mode=compat',
+            'https://api.twitter.com/1.1/blocks/ids.json?cursor=1524566179872860311&stringify_ids=False&include_entities=True&skip_status=False&tweet_mode=compat',
             body=resp_data,
             match_querystring=True,
             status=200)
@@ -630,37 +575,12 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(resp.id, 718443)
 
     @responses.activate
-    def testGetDirectMessages(self):
-        with open('testdata/get_direct_messages.json') as f:
-            resp_data = f.read()
-        responses.add(GET, DEFAULT_URL, body=resp_data)
-
-        resp = self.api.GetDirectMessages()
-        self.assertTrue(type(resp) is list)
-        direct_message = resp[0]
-        self.assertTrue(type(direct_message) is twitter.DirectMessage)
-        self.assertEqual(direct_message.id, 678629245946433539)
-
-    @responses.activate
-    def testGetSentDirectMessages(self):
-        with open('testdata/get_sent_direct_messages.json') as f:
-            resp_data = f.read()
-        responses.add(GET, DEFAULT_URL, body=resp_data)
-
-        resp = self.api.GetSentDirectMessages()
-        self.assertTrue(type(resp) is list)
-        direct_message = resp[0]
-        self.assertTrue(type(direct_message) is twitter.DirectMessage)
-        self.assertEqual(direct_message.id, 678629283007303683)
-        self.assertTrue([dm.sender_screen_name == 'notinourselves' for dm in resp])
-
-    @responses.activate
     def testGetFavorites(self):
         with open('testdata/get_favorites.json') as f:
             resp_data = f.read()
         responses.add(GET, DEFAULT_URL, body=resp_data)
 
-        resp = self.api.GetFavorites()
+        resp = self.api.GetFavorites(user_id=12, count=1, since_id=10, max_id=200)
         self.assertTrue(type(resp) is list)
         fav = resp[0]
         self.assertEqual(fav.id, 677180133447372800)
@@ -672,7 +592,7 @@ class ApiTest(unittest.TestCase):
             resp_data = f.read()
         responses.add(GET, DEFAULT_URL, body=resp_data)
 
-        resp = self.api.GetMentions()
+        resp = self.api.GetMentions(count=1)
         self.assertTrue(type(resp) is list)
         self.assertTrue([type(mention) is twitter.Status for mention in resp])
         self.assertEqual(resp[0].id, 676148312349609985)
@@ -1359,6 +1279,52 @@ class ApiTest(unittest.TestCase):
         self.assertFalse(resp.user.screen_name)
 
     @responses.activate
+    def testGetStatuses(self):
+        with responses.RequestsMock(assert_all_requests_are_fired=True) as rsps:
+            with open('testdata/get_statuses.1.json') as f:
+                resp_data = f.read()
+            rsps.add(GET, DEFAULT_URL, body=resp_data)
+            with open('testdata/get_statuses.2.json') as f:
+                resp_data = f.read()
+            rsps.add(GET, DEFAULT_URL, body=resp_data)
+
+            with open('testdata/get_statuses.ids.txt') as f:
+                status_ids = [int(l) for l in f]
+
+            resp = self.api.GetStatuses(status_ids)
+
+            self.assertTrue(type(resp) is list)
+            self.assertEqual(set(respitem.id for respitem in resp), set(status_ids))
+            self.assertFalse(resp != resp)
+
+            self.assertRaises(
+                twitter.TwitterError,
+                lambda: self.api.GetStatuses(['test']))
+
+    @responses.activate
+    def testGetStatusesMap(self):
+        with responses.RequestsMock(assert_all_requests_are_fired=True) as rsps:
+            with open('testdata/get_statuses.map.1.json') as f:
+                resp_data = f.read()
+            rsps.add(GET, DEFAULT_URL, body=resp_data)
+            with open('testdata/get_statuses.map.2.json') as f:
+                resp_data = f.read()
+            rsps.add(GET, DEFAULT_URL, body=resp_data)
+
+            with open('testdata/get_statuses.ids.txt') as f:
+                status_ids = [int(l) for l in f]
+
+            resp = self.api.GetStatuses(status_ids, map=True)
+
+            self.assertTrue(type(resp) is dict)
+            self.assertTrue(all([resp.get(status_id) for status_id in status_ids]))
+            self.assertFalse(resp != resp)
+
+            self.assertRaises(
+                twitter.TwitterError,
+                lambda: self.api.GetStatuses(['test'], map=True))
+
+    @responses.activate
     def testGetStatusOembed(self):
         with open('testdata/get_status_oembed.json') as f:
             resp_data = f.read()
@@ -1400,7 +1366,7 @@ class ApiTest(unittest.TestCase):
             resp_data = f.read()
         responses.add(
             responses.GET,
-            'https://api.twitter.com/1.1/mutes/users/list.json?cursor=-1&tweet_mode=compat&include_entities=True',
+            'https://api.twitter.com/1.1/mutes/users/list.json?cursor=-1&stringify_ids=False&include_entities=True&skip_status=False&tweet_mode=compat',
             body=resp_data,
             match_querystring=True,
             status=200)
@@ -1410,7 +1376,7 @@ class ApiTest(unittest.TestCase):
             resp_data = f.read()
         responses.add(
             responses.GET,
-            'https://api.twitter.com/1.1/mutes/users/list.json?cursor=1535206520056388207&include_entities=True&tweet_mode=compat',
+            'https://api.twitter.com/1.1/mutes/users/list.json?cursor=1535206520056388207&stringify_ids=False&include_entities=True&skip_status=False&tweet_mode=compat',
             body=resp_data,
             match_querystring=True,
             status=200)
@@ -1425,7 +1391,7 @@ class ApiTest(unittest.TestCase):
             resp_data = f.read()
         responses.add(
             responses.GET,
-            'https://api.twitter.com/1.1/mutes/users/ids.json?tweet_mode=compat&cursor=-1',
+            'https://api.twitter.com/1.1/mutes/users/ids.json?cursor=-1&stringify_ids=False&include_entities=True&skip_status=False&tweet_mode=compat',
             body=resp_data,
             match_querystring=True,
             status=200)
@@ -1435,7 +1401,7 @@ class ApiTest(unittest.TestCase):
             resp_data = f.read()
         responses.add(
             responses.GET,
-            'https://api.twitter.com/1.1/mutes/users/ids.json?tweet_mode=compat&cursor=1535206520056565155',
+            'https://api.twitter.com/1.1/mutes/users/ids.json?cursor=1535206520056565155&stringify_ids=False&include_entities=True&skip_status=False&tweet_mode=compat',
             body=resp_data,
             match_querystring=True,
             status=200)
@@ -1449,7 +1415,7 @@ class ApiTest(unittest.TestCase):
             resp_data = f.read()
         responses.add(
             POST,
-            'https://api.twitter.com/1.1/blocks/create.json',
+            DEFAULT_URL,
             body=resp_data,
             match_querystring=True,
             status=200)
@@ -1645,6 +1611,10 @@ class ApiTest(unittest.TestCase):
         resp = self.api.CreateFavorite(status)
         self.assertEqual(resp.id, 757283981683412992)
 
+        self.assertRaises(
+            twitter.TwitterError,
+            lambda: self.api.CreateFavorite(status=None, status_id=None))
+
     @responses.activate
     def testDestroyFavorite(self):
         with open('testdata/post_destroy_favorite.json') as f:
@@ -1656,6 +1626,10 @@ class ApiTest(unittest.TestCase):
         status = twitter.models.Status(id=757283981683412992)
         resp = self.api.DestroyFavorite(status)
         self.assertEqual(resp.id, 757283981683412992)
+
+        self.assertRaises(
+            twitter.TwitterError,
+            lambda: self.api.DestroyFavorite(status=None, status_id=None))
 
     @responses.activate
     def testPostDirectMessage(self):
@@ -1713,14 +1687,6 @@ class ApiTest(unittest.TestCase):
         )
 
     @responses.activate
-    def test_UpdateBackgroundImage_deprecation(self):
-        responses.add(POST, DEFAULT_URL, body='{}', status=200)
-        warnings.simplefilter("always")
-        with warnings.catch_warnings(record=True) as w:
-            resp = self.api.UpdateBackgroundImage(image='testdata/168NQ.jpg')
-            self.assertTrue(issubclass(w[0].category, DeprecationWarning))
-
-    @responses.activate
     @patch('twitter.api.Api.UploadMediaChunked')
     def test_UploadSmallVideoUsesChunkedData(self, mocker):
         responses.add(POST, DEFAULT_URL, body='{}')
@@ -1732,3 +1698,73 @@ class ApiTest(unittest.TestCase):
         assert os.path.getsize(video.name) <= 1024 * 1024
         assert isinstance(resp, twitter.Status)
         assert twitter.api.Api.UploadMediaChunked.called
+
+    @responses.activate
+    def test_post_retweet(self):
+        with open('testdata/post_retweet.json') as f:
+            resp_data = f.read()
+        responses.add(POST, DEFAULT_URL, body=resp_data)
+        resp = self.api.PostRetweet(status_id=967413349473574913, trim_user=True)
+        assert resp
+        assert resp.id == 967465567773839360
+
+        self.assertRaises(
+            twitter.TwitterError,
+            lambda: self.api.PostRetweet(status_id=0))
+        self.assertRaises(
+            twitter.TwitterError,
+            lambda: self.api.PostRetweet(status_id='asdf'))
+
+    @responses.activate
+    def test_get_retweets_of_me(self):
+        with open('testdata/get_retweets_of_me.json') as f:
+            resp_data = f.read()
+        responses.add(GET, DEFAULT_URL, body=resp_data)
+        resp = self.api.GetRetweetsOfMe(
+            count=1,
+            since_id=0,
+            max_id=100,
+            trim_user=True,
+            include_entities=True,
+            include_user_entities=True)
+        assert resp
+
+        self.assertRaises(
+            twitter.TwitterError,
+            lambda: self.api.GetRetweetsOfMe(count=200))
+        self.assertRaises(
+            twitter.TwitterError,
+            lambda: self.api.GetRetweetsOfMe(count='asdf'))
+
+    @responses.activate
+    def test_incoming_friendships(self):
+        with open('testdata/get_incoming_friendships.json') as f:
+            responses.add(GET, DEFAULT_URL, f.read())
+        resp = self.api.IncomingFriendship(cursor=1, stringify_ids=True)
+        assert resp
+        assert isinstance(resp, list)
+        assert resp[0] == 12
+
+    @responses.activate
+    def test_outgoing_friendships(self):
+        with open('testdata/get_outgoing_friendships.json') as f:
+            responses.add(GET, DEFAULT_URL, f.read())
+        resp = self.api.OutgoingFriendship(cursor=1, stringify_ids=True)
+        assert resp
+        assert isinstance(resp, list)
+        assert resp[0] == 12
+
+    @responses.activate
+    def test_update_profile(self):
+        with open('testdata/update_profile.json') as f:
+            responses.add(POST, DEFAULT_URL, f.read())
+        resp = self.api.UpdateProfile(
+            name='jeremy',
+            location='philly',
+            profileURL='example.com',
+            description='test',
+            profile_link_color='#e35',
+            include_entities=True,
+            skip_status=True)
+        assert resp
+        assert isinstance(resp, twitter.User)

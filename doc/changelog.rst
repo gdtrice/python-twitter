@@ -1,6 +1,52 @@
 Changelog
 ---------
 
+Version 3.4.1
+=============
+
+Bugfixes:
+
+* Fix an issue where :py:func:`twitter.twitter_utils.calc_expected_status_length` was failing for python 2 due to a failure to convert a bytes string to unicode. `Github issue #546 <https://github.com/bear/python-twitter/issues/546>`_.
+
+* Documentation fix for :py:func:`twitter.api.Api.UsersLookup`. UsersLookup can take a string or a list and properly parses both of them now. Github issues `#535 <https://github.com/bear/python-twitter/issues/535>`_ and `#549 <https://github.com/bear/python-twitter/issues/549>`_.
+
+* Properly decode response content for :py:func:`twitter.twitter_utils.http_to_file`. `Github issue #521 <https://github.com/bear/python-twitter/issues/521>`_.
+
+* Fix an issue with loading extended_tweet entities from Streaming API where tweets would be truncated when converting to a :py:class:`twitter.models.Status`. Github issues `#491 <https://github.com/bear/python-twitter/issues/491>`_ and `#506 <https://github.com/bear/python-twitter/issues/506>`_.
+
+Version 3.4
+===========
+
+Deprecations
+++++++++++++
+
+* :py:func:`twitter.api.Api.UpdateBackgroundImage`. Please make sure that your code does not call this function as it will now return a hard error. There is no replacement function. This was deprecated by Twitter around July 2015.
+
+* :py:func:`twitter.api.Api.PostMedia` has been removed. Please use :py:func:`twitter.api.Api.PostUpdate` instead.
+
+* :py:func:`twitter.api.Api.PostMultipleMedia`. Please use :py:func:`twitter.api.Api.PostUpdate` instead.
+
+
+Version 3.3.1
+=============
+
+* Adds support for 280 character limit.
+
+
+Version 3.3
+=============
+
+* Adds application only authentication. See `Twitter's documentation for details <https://dev.twitter.com/oauth/application-only>`_. To use application only authentication, pass `application_only_auth` when creating the Api; the bearer token will be automatically retrieved.
+
+* Adds function :py:func:`twitter.api.GetAppOnlyAuthToken`
+
+* Adds `filter_level` keyword argument for :py:func:`twitter.api.GetStreamFilter`, :py:func:`twitter.api.GetUserStream`
+
+* Adds `proxies` keyword argument for creating an Api instance. Pass a dictionary of proxies for the request to pass through, if not specified allows requests lib to use environmental variables for proxy if any.
+
+* Adds support for `quoted_status` to the :py:class:`twitter.models.Status` model.
+
+
 Version 3.2.1
 =============
 
@@ -13,7 +59,7 @@ Version 3.2
 ===========
 
 Deprecations
-------------
+++++++++++++
 
 Nothing is being deprecationed this version, however here's what's being deprecated as of v. 3.3.0:
 
@@ -29,7 +75,7 @@ Nothing is being deprecationed this version, however here's what's being depreca
 
 
 What's New
-----------
+++++++++++
 
 * We've added new deprecation warnings, so it's easier to track when things go away. All of python-twitter's deprecation warnings will be a subclass of :py:class:`twitter.error.PythonTwitterDeprecationWarning` and will have a version number associated with them such as :py:class:`twitter.error.PythonTwitterDeprecationWarning330`.
 
@@ -47,7 +93,7 @@ What's New
 * `video_info` is now available on a `twitter.models.Media` object, which allows access to video urls/bitrates/etc. in the `extended_entities` node of a tweet.
 
 What's Changed
---------------
+++++++++++++++
 
 * :py:class:`twitter.models.Trend`'s `volume` attribute has been renamed `tweet_volume` in line with Twitter's naming convention. This change should allow users to access the number of tweets being tweeted for a given Trend. `PR #375 <https://github.com/bear/python-twitter/pull/375>`_
 
@@ -57,7 +103,7 @@ What's Changed
 
 
 Bugfixes
---------
+++++++++
 
 * :py:class:`twitter.models.Media` again contains a ``sizes`` attribute, which was missed back in the Version 3.0 release. `PR #360 <https://github.com/bear/python-twitter/pull/360>`_
 
@@ -73,7 +119,7 @@ Version 3.1
 ==========
 
 What's New
-____________
+++++++++++
 
 * :py:func:`twitter.api.Api.PostMediaMetadata()` Method allows the posting of alt text (hover text) to a photo on Twitter. Note that it appears that you have to call this method prior to attaching the photo to a status.
 
@@ -92,7 +138,7 @@ ____________
 
 
 What's Changed
-______________
+++++++++++++++
 
 * :py:func:`twitter.api.Api.GetStatus()` Now accepts the keyword argument ``include_ext_alt_text`` which will request alt text to be included with the Status object being returned (if available). Defaults to ``True``.
 
