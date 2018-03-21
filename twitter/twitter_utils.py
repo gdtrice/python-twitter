@@ -216,7 +216,7 @@ def http_to_file(http):
     return data_file
 
 
-def parse_media_file(passed_media):
+def parse_media_file(passed_media, media_category=None):
     """ Parses a media file and attempts to return a file-like object and
     information about the media file.
 
@@ -265,7 +265,8 @@ def parse_media_file(passed_media):
     media_type = mimetypes.guess_type(os.path.basename(filename))[0]
     if media_type is not None:
         if media_type in img_formats and file_size > 5 * 1048576:
-            raise TwitterError({'message': 'Images must be less than 5MB.'})
+            if media_category is not 'tweet_gif':
+                raise TwitterError({'message': 'Images must be less than 5MB.'})
         elif media_type in video_formats and file_size > 15 * 1048576:
             raise TwitterError({'message': 'Videos must be less than 15MB.'})
         elif media_type not in img_formats and media_type not in video_formats:
